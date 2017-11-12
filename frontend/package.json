@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "react": "15.6.1",
-    "react-dom": "15.6.1",
+    "react": "^16.1.0",
+    "react-dom": "^16.1.0",
     "konva": "^1.7.6",
     "react-konva": "^1.1.6",
     "semantic-ui-css": "^2.2.12",
