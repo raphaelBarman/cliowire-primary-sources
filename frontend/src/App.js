@@ -7,7 +7,9 @@ import './App.css';
 import results from './Francesco.json'
 
 const argusSeachUrl = 'http://localhost:8080/search/'
+//const argusSeachUrl = 'http://128.179.142.126:8080/search/'
 const imageUtilsUrl = 'http://localhost:3001'
+//const imageUtilsUrl = 'http://128.179.142.126:3001'
 
 class ImageSource extends React.Component {
     state = {
@@ -57,7 +59,8 @@ class ImageExplorer extends React.Component {
             x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
             y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
         };
-        const newScale = evt.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+        var newScale = evt.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+        newScale = Math.min(2.0,  Math.max(0.1, newScale))
         var newPos = {
             x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
             y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale
@@ -80,8 +83,8 @@ class ImageExplorer extends React.Component {
         const ratioh = height/bboxh
         const ratio = Math.min(ratiow, ratioh)
 
-        const stageOffsetX = offsetX - (width - bboxw*ratio*scalingFactor)/2/ratio
-        const stageOffsetY = offsetY - (height - bboxh*ratio*scalingFactor)/2/ratio
+        const stageOffsetX = Math.max(0, offsetX - (width - bboxw*ratio*scalingFactor)/2/ratio)
+        const stageOffsetY = Math.max(0, offsetY - (height - bboxh*ratio*scalingFactor)/2/ratio)
 
         this.setState({
             stagePosition: {x: 0, y: 0},
@@ -128,26 +131,33 @@ class ImageExplorer extends React.Component {
 //    )
 //}
 
-const CardResult = ({ result: {src, confidence, string, width, height}})=> {
-    return (
-        <Card >
-            <Card.Content>
-                <Image2 src={src} width={width} height={height}/>
-            </Card.Content>
-            <Card.Content extra>
-                <Card.Meta>Confidence: {confidence}% </Card.Meta>
-                <Card.Description>{string}</Card.Description>
-            </Card.Content>
-        </Card>
-    )
-}
-
+class CardResult extends React.Component {
+    handleClick = () => {
+        const {baseFile, offsetX, offsetY, bboxw, bboxh} = this.props.result
+        this.props.onClick(baseFile, offsetX, offsetY, bboxw, bboxh)
+    }
+    render () {
+        const {src, baseFile, confidence, string, width, height} = this.props.result
+        return (
+            <Card onClick={this.handleClick}>
+                <Card.Content>
+                    <Image2 src={src} width={width} height={height}/>
+                </Card.Content>
+                <Card.Content extra>
+                    <Card.Meta>Confidence: {confidence}% </Card.Meta>
+                    <Card.Meta>Image source: {baseFile} </Card.Meta>
+                    <Card.Description>{string}</Card.Description>
+                </Card.Content>
+            </Card>
+        )
+    }
+} 
 
 class SearchBar extends React.Component {
     state = {
         searchString : '',
         kws: false,
-        caseSensitive: true
+        caseSensitive: true,
     }
 
     handleSearchChange = (_, {value}) => {
@@ -188,7 +198,10 @@ class App extends Component {
         results: [],
         loading: false,
         kws: false,
-        caseSensitive: true
+        caseSensitive: true,
+        imageExplorer: {
+            active: false,
+        }
     }
 
     handleSearch = (searchString) => {
@@ -220,18 +233,41 @@ class App extends Component {
         })
     }
 
+    handleSearchResultClick = (src, offsetX, offsetY, bboxw, bboxh) => {
+        this.setState({
+            imageExplorer: {
+                active: true,
+                src: src,
+                offsetX: offsetX,
+                offsetY: offsetY,
+                bboxw: bboxw,
+                bboxh: bboxh
+            }
+        })
+    }
+
+    handleClose = () => {
+        this.setState({
+            imageExplorer: {
+                active: false
+            }
+        })
+    }
+
     render() {
         const {results, loading} = this.state
+        const {active, src, offsetX, offsetY, bboxw, bboxh} = this.state.imageExplorer
         return (
             <Container>
                 <Header as='h1'>Primary Source word spotting</Header>
                 <Segment>
                     <SearchBar onSearch={this.handleSearch} loading={loading} onCheck={this.handleCheck}/>
                 </Segment>
-                {/*<Segment>
-                    <ImageExplorer width={1000} height={800} offsetX={942} offsetY={5513} bboxw={363} bboxh={139} bboxc='#4289f480' src={'/554eacdd-6734-4c91-9b9a-5e40869403e7/490.jpg'}/>
-                    </Segment>*/}
-                {results.length > 0 ? (<Segment>
+                {active ? <Segment>
+                <Button floated='right' icon='close' onClick={this.handleClose}/>
+                <ImageExplorer width={1000} height={800} offsetX={offsetX} offsetY={offsetY} bboxw={bboxw} bboxh={bboxh} bboxc='#4289f480' src={src}/>
+                </Segment> : 
+                results.length > 0 ? (<Segment>
                     <Card.Group>
                         {results.slice(0,30).map((result) => {
                              const width = 260
@@ -247,13 +283,18 @@ class App extends Component {
                              const url = imageUtilsUrl + src + '?offsetX=' + offsetX + '&offsetY=' + offsetY + '&bboxw=' + bboxw +'&bboxh=' + bboxh + '&width=' + width + '&height=' + height
                              const res= {
                                  src: url,
+                                 baseFile: src,
                                  confidence: confidence,
                                  string: string,
                                  width: width,
-                                 height: height
+                                 height: height,
+                                 offsetX: offsetX,
+                                 offsetY: offsetY,
+                                 bboxw: bboxw,
+                                 bboxh: bboxh
                              }
 
-                             return <CardResult result={res} key={url}/>})}
+                             return <CardResult result={res} key={url} onClick={this.handleSearchResultClick}/>})}
                     </Card.Group>
                 </Segment>) : ("")}
             </Container>
