@@ -1,0 +1,6 @@
+imageUtils/package-lock.json
+argusserver/etc/argusSearch.properties
+frontend/package-lock.json
+imageUtils/package.json
+argusserver/etc/argusSearch.properties
+*.json
