@@ -7,7 +7,7 @@ import './App.css';
 import results from './Francesco.json'
 
 const argusSeachUrl = 'http://localhost:8080/search/'
-//const argusSeachUrl = 'http://128.179.142.126:8080/search/'
+//const argusSeachUrl = 'http://128.179.141.145:8080/search/'
 const imageUtilsUrl = 'http://localhost:3001'
 //const imageUtilsUrl = 'http://128.179.142.126:3001'
 
@@ -205,6 +205,11 @@ class App extends Component {
     }
 
     handleSearch = (searchString) => {
+        this.setState({
+            imageExplorer: {
+                active: false
+            }
+        })
         if(searchString && searchString.length > 0){
             const {kws, caseSensitive} = this.state
             this.setState({
@@ -257,6 +262,13 @@ class App extends Component {
     render() {
         const {results, loading} = this.state
         const {active, src, offsetX, offsetY, bboxw, bboxh} = this.state.imageExplorer
+	if (src) {
+        var splitted_src = src.split("/")
+        var uid_src = splitted_src[1]
+        var page_src = splitted_src[2].split(".")[0].padStart(6, "0")
+        var url_src = "https://images.center/iiif/"+ uid_src + "-" + page_src + "/full/full/0/default.jpg"
+	}
+
         return (
             <Container>
                 <Header as='h1'>Primary Source word spotting</Header>
@@ -264,12 +276,12 @@ class App extends Component {
                     <SearchBar onSearch={this.handleSearch} loading={loading} onCheck={this.handleCheck}/>
                 </Segment>
                 {active ? <Segment>
-                <Button floated='right' icon='close' onClick={this.handleClose}/>
-                <ImageExplorer width={1000} height={800} offsetX={offsetX} offsetY={offsetY} bboxw={bboxw} bboxh={bboxh} bboxc='#4289f480' src={src}/>
+                    <Button floated='right' icon='close' onClick={this.handleClose}/>
+                    <ImageExplorer width={1000} height={800} offsetX={offsetX} offsetY={offsetY} bboxw={bboxw} bboxh={bboxh} bboxc='#4289f480' src={url_src}/>
                 </Segment> : 
-                results.length > 0 ? (<Segment>
+                 results.length > 0 ? (<Segment>
                     <Card.Group>
-                        {results.slice(0,30).map((result) => {
+                        {results.slice(0,1000).map((result) => {
                              const width = 260
                              const height = 150
                              const src = result.filename
@@ -280,23 +292,27 @@ class App extends Component {
                              const offsetY = ypoints[0]
                              const bboxw = xpoints[2]-xpoints[0]
                              const bboxh = ypoints[2]-ypoints[0]
-                             const url = imageUtilsUrl + src + '?offsetX=' + offsetX + '&offsetY=' + offsetY + '&bboxw=' + bboxw +'&bboxh=' + bboxh + '&width=' + width + '&height=' + height
-                             const res= {
-                                 src: url,
-                                 baseFile: src,
-                                 confidence: confidence,
-                                 string: string,
-                                 width: width,
-                                 height: height,
-                                 offsetX: offsetX,
-                                 offsetY: offsetY,
-                                 bboxw: bboxw,
-                                 bboxh: bboxh
-                             }
+                             //const url = imageUtilsUrl + src + '?offsetX=' + offsetX + '&offsetY=' + offsetY + '&bboxw=' + bboxw +'&bboxh=' + bboxh + '&width=' + width + '&height=' + height
+                             const splitted = src.split("/")
+                             const uid = splitted[1]
+                             const page = splitted[2].split(".")[0].padStart(6, "0")
+                             const url = "https://images.center/iiif/"+ uid + "-" + page+ "/" + offsetX + "," + offsetY + "," + bboxw + "," + bboxh + "/full/0/default.jpg"
+                                         const res= {
+                                             src: url,
+                                             baseFile: src,
+                                             confidence: confidence,
+                                             string: string,
+                                             width: width,
+                                             height: height,
+                                             offsetX: offsetX,
+                                             offsetY: offsetY,
+                                             bboxw: bboxw,
+                                             bboxh: bboxh
+                                         }
 
                              return <CardResult result={res} key={url} onClick={this.handleSearchResultClick}/>})}
                     </Card.Group>
-                </Segment>) : ("")}
+                 </Segment>) : ("")}
             </Container>
         );
   }
